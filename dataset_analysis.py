@@ -85,12 +85,12 @@ def split_and_save_data(X, y, top_features_indices=None, test_size=0.2, random_s
 
         print(f"Data has been binned into {len(np.unique(y_train))} classes")
 
-    os.makedirs("data", exist_ok=True)
+    #os.makedirs("data", exist_ok=True)
 
-    with open("data/train_data.data", "wb") as f:
+    with open("test_datasets/train_data.dat", "wb") as f:
         pickle.dump((X_train, y_train), f)
 
-    with open("data/test_data.dat", "wb") as f:
+    with open("test_datasets/test_data.dat", "wb") as f:
         pickle.dump((X_test, y_test), f)
 
     print("数据集已保存为.dat文件")
@@ -120,12 +120,12 @@ def train_decision_tree(X_train, y_train, X_test, y_test, max_depths=[10, 15, 20
         print(f"Training set Accuracy: {train_accuracy:.4f}")
         print(f"Testing set Accuracy: {test_accuracy:.4f}")
 
-        model_path = f"data/decision_tree_depth_{depth}"
+        model_path = f"test_models/decision_tree_depth_{depth}.sav"
         with open(model_path, "wb") as f:
             pickle.dump(model, f)
 
         tree = model.tree_
-        with open(f"data/tree_structure_depth_{depth}.txt", "w") as f:
+        with open(f"test_models/tree_structure_depth_{depth}.txt", "w") as f:
             f.write(f"决策树 (max_depth={depth}) 结构摘要:\n")
             f.write(f"最大深度: {tree.max_depth}\n")
             f.write(f"节点总数: {tree.node_count}\n")

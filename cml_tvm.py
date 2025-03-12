@@ -9,14 +9,16 @@ from sklearn.tree import DecisionTreeClassifier
 from decision_compiler.model import build_model
 
 def load_data(data_dir, dataset):
-    data_name = os.path.join(data_dir, dataset + ".dat")
+    #data_name = os.path.join(data_dir, dataset + ".dat")
+    data_name = "test_datasets/iris_test.dat"
     data = pickle.load(open(data_name, 'rb'))
     data = data.astype(np.float32)
     return data
 
 def load_model(model_dir, func_name, dataset):
-    filename = func_name + "_" + dataset + ".sav"
-    filename = os.path.join(model_dir, filename)
+    #filename = func_name + "_" + dataset + ".sav"
+    filename = "test_models/iris_decision_tree_model.sav"
+    #filename = os.path.join(model_dir, filename)
     clf = pickle.load(open(filename, 'rb'))
     return clf
 
