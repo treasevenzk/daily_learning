@@ -1,33 +1,23 @@
-"""Library information"""
 import os
 import sys
-import platform
 
 def find_lib_path():
-    curr_path = os.path.dirname(os.path.abspath(os.path.expanduser(__file__)))
-
-    lib_search_paths = [
-        os.path.join(curr_path, "../../build/lib"),
-        os.path.join(curr_path, "../../lib"),
-        os.path.join(sys.prefix, "lib"),
-        "/usr/local/lib",
-        "/usr/lib"
-    ]
-
-    if sys.platform.startswith("win32"):
-        lib_name = "mylib.dll"
-    elif sys.platform.startswith("darwin"):
-        lib_name = "libmylib.dylib"
-    else:
-        lib_name = "libmylib.so"
-
-    lib_paths = [os.path.join(path, lib_name) for path in lib_search_paths]
-
-    for lib_path in lib_paths:
-        if os.path.exists(lib_path):
-            return [lib_path]
-        
-    raise RuntimeError(
-        "Cannot find the MyLib library. " +
-        "List of candidates:\n" + "\n".join(lib_paths)
-    )
+    """Find MyLib dynamic library files."""
+    # 从当前文件位置推导项目根目录
+    curr_path = os.path.dirname(os.path.abspath(__file__))
+    root_path = os.path.abspath(os.path.join(curr_path, "../../.."))
+    
+    # 直接指定库文件的确切位置
+    lib_path = os.path.join(root_path, "build/lib/libmylib.so")
+    
+    # 检查文件是否存在
+    if os.path.exists(lib_path):
+        return [lib_path]
+    
+    # 如果找不到，提供更多调试信息
+    print("Current directory:", curr_path)
+    print("Root directory:", root_path)
+    print("Expected library path:", lib_path)
+    print("File exists:", os.path.exists(lib_path))
+    
+    raise RuntimeError(f"Cannot find the MyLib library at {lib_path}")
