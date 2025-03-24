@@ -28,12 +28,20 @@ from packedfun._ffi import get_global_func, list_global_func
 这个导入触发一系列模块加载：
 1.首先加载```packedfun/__init__.py```,它包含
 ```
+from . import _ffi
 ```
 2.然后加载```packedfun/_ffi/__init__.py```,它导入几个关键组件
 ```
+from .base import PackedFunError
+from .function import PackedFunction
+from .registry import get_global_func, register_func, list_global_func
 ```
 3.这导致加载```base.py```,此文件包含了核心的C++库加载逻辑:
 ```
+def _load_lib():
+    # 查找并加载c++库文件
+    # 返回ctypes.CDLL对象
+_LIB = _load_lib()
 ```
 ```_load_lib```函数会在多个位置查找```libpackedfun_c_api.so```库文件，当找到时，使用```ctypes.CDLL()```加载它。这实际上是在动态加载我们编译的C++代码
 2. C++库加载阶段
@@ -48,13 +56,16 @@ from packedfun._ffi import get_global_func, list_global_func
 * ```examples/test_functions/test_functions.cpp```-定义我们的测试函数(AddIntegers，Greet)
 加载库时，会执行静态初始化部分，包括：
 ```
-
+PACKEDFUN_REGISTER_GLOBAL(AddIntegers);
+PACKEDFUN_REGISTER_GLOBAL(Greet);
 ```
 这些宏展开为静态初始化代码，会调用```Registry::Global()->Register()```将函数注册到全局注册表中
 3. Python FFI初始化
 加载完C++库后，Python会:
 1.定义C API函数的原型(在base.py中)
 ```
+_LIB.PackedFunCreateInt.argtypes = [ctypes.c_int]
+_LIB.PackedFunCreateInt.restype = ctypes.POINTER(PackedValueHandle)
 ```
 2.初始化function.py中的```PackedFunction```类，它封装了对C++函数调用
 3.初始化registry.py中的函数，提供对C++ Registry的访问
@@ -62,31 +73,44 @@ from packedfun._ffi import get_global_func, list_global_func
 当```test_function_call.py```执行测试时：
 1. 测试函数列表获取
 ```
+def test_list_functions(self):
+    func_names = list_global_func()
+    self.assertIsInstance(func_names, list)
 ```
-这段代码调用了```list_global_func()```,它的执行流程是:
-1.Python:```registry.py```中的```list_global_func()```
-2.C++: 调用```PackedFunListGlobalFuncNames()```(在```packed_fun_api.cpp```中)
-3.C++：该函数使用```Registry::Global()->ListNames()```获取所有注册的函数名
-4.C++→Python: 返回字符串数组给Python
+这段代码调用了```list_global_func()```,它的执行流程是:<br>
+1.Python:```registry.py```中的```list_global_func()```<br>
+2.C++: 调用```PackedFunListGlobalFuncNames()```(在```packed_fun_api.cpp```中)<br>
+3.C++：该函数使用```Registry::Global()->ListNames()```获取所有注册的函数名<br>
+4.C++→Python: 返回字符串数组给Python<br>
+
 2. 测试函数获取
 ```
+def test_add_integers(self):
+    add_func = get_global_func("AddIntegers")
+    self.assertIsNotNone(add_func)
 ```
-执行流程:
-1.Python:registry.py中的get_global_func("AddIntegers")
-2.C++:调用```PackedFunGetGlobalFunc("AddIntegers")(在packed_fun_api.cpp中)
-3.C++:该函数使用```Registry::Global()->Get("AddIntegers")```获取函数
-4.C++→Python:返回函数句柄给Python
-5.Python：使用这个句柄创建一个```PackedFunction```对象
+执行流程:<br>
+1.Python:registry.py中的get_global_func("AddIntegers")<br>
+2.C++:调用```PackedFunGetGlobalFunc("AddIntegers")(在packed_fun_api.cpp中)<br>
+3.C++:该函数使用```Registry::Global()->Get("AddIntegers")```获取函数<br>
+4.C++→Python:返回函数句柄给Python<br>
+5.Python：使用这个句柄创建一个```PackedFunction```对象<br>
+
 3. 测试函数调用
 ```
+def test_add_integers(self):
+    add_func = get_global_func("AddIntegers")
+    self.assertIsNotNone(add_func)
+    result = add_func(10, 20)
+    self.assertEqual(result, 30)
 ```
-调用```add_func(10, 20)```的执行流程:
-1.Python:```function.py```中的```PackedFunction.__call__(10, 20)```
-2.Python→C++:
-    * 将Python的```10```转换为C++的```PackedValue```(通过```PackedFunCreateInt```)
-    * 将Python的```20```转换为C++的```PackedValue```
-    * 准备参数组
-3.C++：调用```PackedFunCallFunc```(在```packed_fun_api.cpp```中)
-4.C++：该函数找到```AddIntegers```函数并调用它
-5.C++：```AddIntegers```函数(在```test_functions.cpp```中)执行```5+7```计算
-6.C++→Python：将结果转换回Python值返回
+调用```add_func(10, 20)```的执行流程:<br>
+1.Python:```function.py```中的```PackedFunction.__call__(10, 20)```<br>
+2.Python→C++:<br>
+    * 将Python的```10```转换为C++的```PackedValue```(通过```PackedFunCreateInt```)<br>
+    * 将Python的```20```转换为C++的```PackedValue```<br>
+    * 准备参数组<br>
+3.C++：调用```PackedFunCallFunc```(在```packed_fun_api.cpp```中)<br>
+4.C++：该函数找到```AddIntegers```函数并调用它<br>
+5.C++：```AddIntegers```函数(在```test_functions.cpp```中)执行```5+7```计算<br>
+6.C++→Python：将结果转换回Python值返回<br>
